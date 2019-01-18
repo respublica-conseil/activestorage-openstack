@@ -48,6 +48,21 @@ if SERVICE_CONFIGURATIONS[:openstack]
       end
     end
 
+    test "uploading with metadata" do
+      begin
+        key  = SecureRandom.base58(24)
+        data = "Some random string!"
+
+        @service.upload(key, StringIO.new(data), checksum: Digest::MD5.base64digest(data),
+                        content_type: "text/plain", disposition: :attachment,
+                        filename: "random.txt")
+
+        assert_equal data, @service.download(key)
+      ensure
+        @service.delete key
+      end
+    end
+
     test "downloading" do
       assert_equal FIXTURE_DATA, @service.download(FIXTURE_KEY)
     end
