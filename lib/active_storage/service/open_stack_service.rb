@@ -17,10 +17,11 @@ module ActiveStorage
       @container = Fog::OpenStack.escape(container)
     end
 
-    def upload(key, io, checksum: nil)
+    def upload(key, io, checksum: nil, content_type: nil, **metadata)
       instrument :upload, key: key, checksum: checksum do
-        params = { 'Content-Type' => guess_content_type(io) }
+        params = { 'Content-Type' => content_type || guess_content_type(io) }
         params['ETag'] = convert_base64digest_to_hexdigest(checksum) if checksum
+        params['Content-Disposition'] = content_disposition_for(metadata) if metadata[:disposition]
 
         begin
           client.put_object(container, key, io, params)
@@ -152,6 +153,13 @@ module ActiveStorage
       Marcel::MimeType.for io,
                            name: io.try(:original_filename),
                            declared_type: io.try(:content_type)
+    end
+
+    def content_disposition_for(metadata)
+      disposition = metadata[:disposition]
+      filename = metadata[:filename] && "filename=\"#{metadata[:filename]}\""
+
+      [disposition, filename].join("; ")
     end
   end
 end
